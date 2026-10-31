@@ -50,13 +50,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAY7AQKHmGo1XVUBv2fot0KA6pzyH7G2zw',
-    appId: '1:394156595783:android:46cfda7afb221975c52f62',
-    messagingSenderId: '394156595783',
-    projectId: 'student-attendance-track-fa9d2',
-    storageBucket: 'student-attendance-track-fa9d2.firebasestorage.app',
+    apiKey: 'AIzaSyBg74QgQRHVmAGdsuD6E15_f5avefbeqh0',
+    appId: '1:31484212379:android:7b02fdf91f0fb038c0423e',
+    messagingSenderId: '31484212379',
+    projectId: 'student-attendance-track-d259c',
+    storageBucket: 'student-attendance-track-d259c.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAxFL8qgjNovwXqyXVcVLcX38yzm2clfpI',
     appId: '1:394156595783:ios:fb811f64db3edddbc52f62',
@@ -65,7 +64,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'student-attendance-track-fa9d2.firebasestorage.app',
     iosBundleId: 'com.example.studentTracker',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAxFL8qgjNovwXqyXVcVLcX38yzm2clfpI',
     appId: '1:394156595783:ios:fb811f64db3edddbc52f62',

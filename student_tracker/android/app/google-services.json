@@ -1,13 +1,51 @@
 {
   "project_info": {
-    "project_number": "394156595783",
-    "project_id": "student-attendance-track-fa9d2",
-    "storage_bucket": "student-attendance-track-fa9d2.firebasestorage.app"
+    "project_number": "31484212379",
+    "project_id": "student-attendance-track-d259c",
+    "storage_bucket": "student-attendance-track-d259c.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:394156595783:android:46cfda7afb221975c52f62",
+        "mobilesdk_app_id": "1:31484212379:android:e66f843cea2aebccc0423e",
+        "android_client_info": {
+          "package_name": "com.attendance.tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBg74QgQRHVmAGdsuD6E15_f5avefbeqh0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:31484212379:android:e5dd9966b907e372c0423e",
+        "android_client_info": {
+          "package_name": "com.example.student_attendance_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBg74QgQRHVmAGdsuD6E15_f5avefbeqh0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:31484212379:android:7b02fdf91f0fb038c0423e",
         "android_client_info": {
           "package_name": "com.example.student_tracker"
         }
@@ -15,7 +53,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAY7AQKHmGo1XVUBv2fot0KA6pzyH7G2zw"
+          "current_key": "AIzaSyBg74QgQRHVmAGdsuD6E15_f5avefbeqh0"
         }
       ],
       "services": {

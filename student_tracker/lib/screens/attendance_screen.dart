@@ -1,0 +1,85 @@
+import 'package:flutter/material.dart';
+
+class AttendanceScreen extends StatefulWidget {
+  const AttendanceScreen({super.key});
+
+  @override
+  State<AttendanceScreen> createState() => _AttendanceScreenState();
+}
+
+class _AttendanceScreenState extends State<AttendanceScreen> {
+  // Mock data for students
+  final List<Map<String, dynamic>> students = [
+    {'id': '1', 'name': 'Juan Dela Cruz', 'isPresent': true},
+    {'id': '2', 'name': 'Maria Clara', 'isPresent': false},
+    {'id': '3', 'name': 'Jose Rizal', 'isPresent': true},
+    {'id': '4', 'name': 'Andres Bonifacio', 'isPresent': true},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mark Attendance'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Grade 5 - Section A',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: students.length,
+              itemBuilder: (context, index) {
+                final student = students[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: student['isPresent'] ? Colors.green : Colors.red,
+                      child: Text(student['name'][0], style: const TextStyle(color: Colors.white)),
+                    ),
+                    title: Text(student['name']),
+                    subtitle: Text(student['isPresent'] ? 'Present' : 'Absent'),
+                    trailing: Switch(
+                      value: student['isPresent'],
+                      activeColor: Colors.green,
+                      onChanged: (bool value) {
+                        setState(() {
+                          students[index]['isPresent'] = value;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // We will save this to Firebase later
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Attendance Saved Locally!')),
+                  );
+                },
+                icon: const Icon(Icons.save),
+                label: const Text('Submit Attendance', style: TextStyle(fontSize: 18)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
