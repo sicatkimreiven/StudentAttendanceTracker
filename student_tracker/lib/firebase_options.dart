@@ -41,12 +41,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDtkNsYSWnityZf4Ap8s9JljONsfguThpo',
-    appId: '1:394156595783:web:5d4e0820d36d6f40c52f62',
-    messagingSenderId: '394156595783',
-    projectId: 'student-attendance-track-fa9d2',
-    authDomain: 'student-attendance-track-fa9d2.firebaseapp.com',
-    storageBucket: 'student-attendance-track-fa9d2.firebasestorage.app',
+    apiKey: 'AIzaSyDkp33-Tw2MRbevRjFEmaTvWkGZD5xUijM',
+    appId: '1:31484212379:web:37f3f17640dc8499c0423e',
+    messagingSenderId: '31484212379',
+    projectId: 'student-attendance-track-d259c',
+    authDomain: 'student-attendance-track-d259c.firebaseapp.com',
+    storageBucket: 'student-attendance-track-d259c.firebasestorage.app',
+    measurementId: 'G-D4JV0MLYRF',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -57,28 +58,29 @@ class DefaultFirebaseOptions {
     storageBucket: 'student-attendance-track-d259c.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAxFL8qgjNovwXqyXVcVLcX38yzm2clfpI',
-    appId: '1:394156595783:ios:fb811f64db3edddbc52f62',
-    messagingSenderId: '394156595783',
-    projectId: 'student-attendance-track-fa9d2',
-    storageBucket: 'student-attendance-track-fa9d2.firebasestorage.app',
+    apiKey: 'AIzaSyCi1REztL3-Yb3oswc2MLmcK0UEt93TZy8',
+    appId: '1:31484212379:ios:d26eda127681de5dc0423e',
+    messagingSenderId: '31484212379',
+    projectId: 'student-attendance-track-d259c',
+    storageBucket: 'student-attendance-track-d259c.firebasestorage.app',
     iosBundleId: 'com.example.studentTracker',
   );
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAxFL8qgjNovwXqyXVcVLcX38yzm2clfpI',
-    appId: '1:394156595783:ios:fb811f64db3edddbc52f62',
-    messagingSenderId: '394156595783',
-    projectId: 'student-attendance-track-fa9d2',
-    storageBucket: 'student-attendance-track-fa9d2.firebasestorage.app',
+    apiKey: 'AIzaSyCi1REztL3-Yb3oswc2MLmcK0UEt93TZy8',
+    appId: '1:31484212379:ios:d26eda127681de5dc0423e',
+    messagingSenderId: '31484212379',
+    projectId: 'student-attendance-track-d259c',
+    storageBucket: 'student-attendance-track-d259c.firebasestorage.app',
     iosBundleId: 'com.example.studentTracker',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDtkNsYSWnityZf4Ap8s9JljONsfguThpo',
-    appId: '1:394156595783:web:f30d2c1d5eb87b25c52f62',
-    messagingSenderId: '394156595783',
-    projectId: 'student-attendance-track-fa9d2',
-    authDomain: 'student-attendance-track-fa9d2.firebaseapp.com',
-    storageBucket: 'student-attendance-track-fa9d2.firebasestorage.app',
+    apiKey: 'AIzaSyDkp33-Tw2MRbevRjFEmaTvWkGZD5xUijM',
+    appId: '1:31484212379:web:406501d2aef1737dc0423e',
+    messagingSenderId: '31484212379',
+    projectId: 'student-attendance-track-d259c',
+    authDomain: 'student-attendance-track-d259c.firebaseapp.com',
+    storageBucket: 'student-attendance-track-d259c.firebasestorage.app',
+    measurementId: 'G-GHLVGMK9QB',
   );
 }

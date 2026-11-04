@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'attendance_screen.dart'; // Import the new screen
+import 'attendance_screen.dart';
+import 'login_screen.dart'; // 1. Added the import for LoginScreen
 
 class TeacherDashboard extends StatelessWidget {
   const TeacherDashboard({super.key});
@@ -11,6 +12,17 @@ class TeacherDashboard extends StatelessWidget {
         title: const Text('Teacher Dashboard'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+                actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (Route<dynamic> route) => false,
+              );
+            },
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/database_service.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -9,6 +11,7 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   // Mock data for students
+  final DatabaseService _dbService = DatabaseService();
   final List<Map<String, dynamic>> students = [
     {'id': '1', 'name': 'Juan Dela Cruz', 'isPresent': true},
     {'id': '2', 'name': 'Maria Clara', 'isPresent': false},
@@ -42,8 +45,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: student['isPresent'] ? Colors.green : Colors.red,
-                      child: Text(student['name'][0], style: const TextStyle(color: Colors.white)),
+                      backgroundColor:
+                          student['isPresent'] ? Colors.green : Colors.red,
+                      child: Text(student['name'][0],
+                          style: const TextStyle(color: Colors.white)),
                     ),
                     title: Text(student['name']),
                     subtitle: Text(student['isPresent'] ? 'Present' : 'Absent'),
@@ -67,14 +72,35 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // We will save this to Firebase later
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Attendance Saved Locally!')),
+                onPressed: () async {
+                  // 1. Show a loading dialog while saving
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) =>
+                        const Center(child: CircularProgressIndicator()),
                   );
+
+                  // 2. Call the database service
+                  await _dbService.saveAttendance(students);
+
+                  // 3. Close the loading dialog (check if widget is still mounted)
+                  if (context.mounted) {
+                    Navigator.pop(context);
+
+                    // 4. Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Attendance Saved to Firebase!')),
+                    );
+
+                    // 5. Go back to the dashboard
+                    Navigator.pop(context);
+                  }
                 },
                 icon: const Icon(Icons.save),
-                label: const Text('Submit Attendance', style: TextStyle(fontSize: 18)),
+                label: const Text('Submit Attendance',
+                    style: TextStyle(fontSize: 18)),
               ),
             ),
           ),
