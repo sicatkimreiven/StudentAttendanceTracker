@@ -1,17 +1,19 @@
-# student_tracker
+# Student Attendance Tracker
 
-A new Flutter project.
+A cross-platform mobile application built with Flutter, Node.js, and Firebase to digitize student attendance tracking, generate reports, and notify parents of absences.
 
-## Getting Started
+## Features
+- **Teacher Dashboard:** Mark students present or absent securely.
+- **Admin Dashboard:** View real-time attendance summaries and reports.
+- **Push Notifications:** Node.js backend listens to Firestore and triggers alerts for absentees.
+- **Offline Mode:** Saves attendance locally if internet is unavailable.
 
-This project is a starting point for a Flutter application.
+## Tech Stack
+- **Frontend:** Flutter (Dart)
+- **Backend:** Node.js (Express)
+- **Database:** Firebase (Firestore & Authentication)
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## How to Run
+1. Clone this repository.
+2. **Frontend:** Run `flutter pub get`, then `flutter run -d chrome`.
+3. **Backend:** Navigate to `backend/`, run `npm install`, add your `serviceAccountKey.json`, then run `node server.js`.

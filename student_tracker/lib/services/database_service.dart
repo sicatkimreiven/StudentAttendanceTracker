@@ -14,18 +14,23 @@ class DatabaseService {
     };
 
     try {
-      // Try to save to Firebase
-      await _db.collection('attendance_records').doc(dateId).set(attendanceData);
-      print("Attendance saved successfully to Firestore!");
+      // Try to save to Firebase, but timeout after 3 seconds if offline
+      await _db
+          .collection('attendance_records')
+          .doc(dateId)
+          .set(attendanceData)
+          .timeout(const Duration(seconds: 3));
+
+      print("✅ Attendance saved successfully to Firestore!");
       
     } catch (e) {
-      // If internet fails (Offline Mode), save locally
-      print("Network failed! Saving attendance locally...");
+      // If internet fails or times out, save locally
+      print("🚨 Network failed or timed out! Saving attendance locally...");
       
       SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.setString('offline_attendance_$dateId', jsonEncode(attendanceData));
       
-      print("Attendance saved locally. Will sync when online.");
+      print("✅ Attendance saved locally. Will sync when online.");
     }
   }
 }
