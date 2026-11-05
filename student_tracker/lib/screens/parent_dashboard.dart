@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_screen.dart';
+import 'parent_student_detail.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -14,7 +15,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
   int _currentIndex = 0;
   final String parentId = FirebaseAuth.instance.currentUser!.uid;
 
-  // Logout confirmation
   Future<void> _confirmLogout() async {
     bool? result = await showDialog(
       context: context,
@@ -27,7 +27,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         ],
       ),
     );
-    if (result == true) {
+    if (result == true && mounted) {
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
     }
   }
@@ -62,7 +62,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // 1. Home Page
   Widget _buildHomePage() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -93,7 +92,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // 2. My Students Page (Enrollment + History)
   Widget _buildMyStudentsPage() {
     return Column(
       children: [
@@ -121,12 +119,17 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   return Card(
                     child: ListTile(
                       leading: const CircleAvatar(child: Icon(Icons.face)),
-                      title: Text(data['studentName']),
+                      title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text('Class Code: ${data['classCode']}'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {
-                        // Open Attendance History Modal
-                        _showAttendanceHistory(data['studentName']);
+                        // Navigate to the detailed page instead of a modal
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (context) => ParentStudentDetail(
+                            studentName: data['studentName'],
+                            classCode: data['classCode'],
+                          )
+                        ));
                       },
                     ),
                   );
@@ -189,61 +192,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // 3. Attendance History Modal (The new feature)
-  void _showAttendanceHistory(String studentName) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          height: MediaQuery.of(context).size.height * 0.7,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Attendance History: $studentName', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              const Text('Showing all past records from the teacher.'),
-              const Divider(),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('attendance_records').snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                    
-                    List<Widget> historyTiles = [];
-                    for (var doc in snapshot.data!.docs) {
-                      var data = doc.data() as Map<String, dynamic>;
-                      List students = data['students'];
-                      
-                      // Check if this student is in this record
-                      var studentRecord = students.firstWhere((s) => s['name'] == studentName, orElse: () => null);
-                      
-                      if (studentRecord != null) {
-                        bool isPresent = studentRecord['isPresent'];
-                        historyTiles.add(
-                          ListTile(
-                            leading: Icon(isPresent ? Icons.check_circle : Icons.cancel, color: isPresent ? Colors.green : Colors.red),
-                            title: Text(isPresent ? 'Present' : 'Absent'),
-                            subtitle: Text(data['date'] ?? 'Unknown Date'),
-                          ),
-                        );
-                      }
-                    }
-                    
-                    if (historyTiles.isEmpty) return const Center(child: Text('No attendance records found yet.'));
-                    return ListView(children: historyTiles);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // 4. Profile Page
   Widget _buildProfilePage() {
     return Center(
       child: Column(
