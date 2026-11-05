@@ -1,60 +1,61 @@
 const express = require('express');
-const admin = require('firebase-admin'); // Make sure this is 'firebase-admin'
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const { getMessaging } = require('firebase-admin/messaging');
 const cors = require('cors');
 
-// 1. Initialize Firebase Admin with the Service Account Key
-// Make sure the serviceAccountKey.json file is in the same folder as this file!
 const serviceAccount = require('./serviceAccountKey.json');
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-const db = admin.firestore();
+initializeApp({ credential: cert(serviceAccount) });
+const db = getFirestore();
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// 2. Simple API health check endpoint
-app.get('/', (req, res) => {
-  res.send('Student Tracker Backend is running perfectly!');
+// API Endpoint to receive requests from the Flutter App
+app.post('/notify-absence', async (req, res) => {
+  const { studentName, parentToken } = req.body;
+
+  if (!parentToken) {
+    return res.status(400).send({ success: false, message: 'No parent token provided' });
+  }
+
+  try {
+    const message = {
+      notification: {
+        title: '🚨 Absence Alert',
+        body: `${studentName} was marked absent today.`,
+      },
+      token: parentToken,
+    };
+
+    const response = await getMessaging().send(message);
+    console.log('✅ Successfully sent notification:', response);
+    res.status(200).send({ success: true, message: 'Notification sent!' });
+  } catch (error) {
+    console.error('❌ Error sending notification:', error);
+    res.status(500).send({ success: false, error: error.message });
+  }
 });
 
-// 3. Listen for new attendance records in Firestore
-// This acts as the trigger for your Push Notifications requirement
-console.log("Starting backend server and listening to Firestore...");
-
+// Keep the Firestore listener for your terminal logs
 db.collection('attendance_records').onSnapshot((snapshot) => {
   snapshot.docChanges().forEach((change) => {
-    
-    // We only care when a NEW attendance record is added
     if (change.type === 'added') {
       const record = change.doc.data();
-      
-      // Check if there are any students marked as absent (isPresent: false)
       const absentStudents = record.students.filter(student => student.isPresent === false);
-      
       if (absentStudents.length > 0) {
         console.log(`\n🚨 [ALERT] Absentees detected for class on date: ${record.date}`);
-        
         absentStudents.forEach(student => {
-          console.log(`📱 Triggering Push Notification to Parent of: ${student.name}`);
-          
-          // IN A REAL APP: 
-          // You would query Firestore here to get the parent's FCM device token,
-          // and then use admin.messaging().send() to send the actual notification.
+          console.log(`📱 Ready to notify parent of: ${student.name}`);
         });
-      } else {
-        console.log(`\n✅ [INFO] All students present for date: ${record.date}`);
       }
     }
   });
 });
 
-// 4. Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Backend server running on http://localhost:${PORT}`);
-  console.log(`Waiting for new attendance records to trigger notifications...\n`);
 });
