@@ -11,106 +11,255 @@ class ParentDashboard extends StatefulWidget {
 }
 
 class _ParentDashboardState extends State<ParentDashboard> {
-  final _codeController = TextEditingController();
-  final _nameController = TextEditingController();
+  int _currentIndex = 0;
+  final String parentId = FirebaseAuth.instance.currentUser!.uid;
 
-  // Function to enroll student
-  Future<void> _enrollStudent() async {
-    String code = _codeController.text.trim();
-    String name = _nameController.text.trim();
-    String parentId = FirebaseAuth.instance.currentUser!.uid;
-
-    if (code.isEmpty || name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
-      return;
+  // Logout confirmation
+  Future<void> _confirmLogout() async {
+    bool? result = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (result == true) {
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
     }
-
-    // Check if the class code exists
-    var classDoc = await FirebaseFirestore.instance.collection('classes').doc(code).get();
-    if (!classDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid Class Code!')));
-      return;
-    }
-
-    // Add enrollment
-    await FirebaseFirestore.instance.collection('enrollments').add({
-      'classCode': code,
-      'studentName': name,
-      'parentId': parentId,
-      'enrolledAt': FieldValue.serverTimestamp(),
-    });
-
-    _codeController.clear();
-    _nameController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student Enrolled!')));
   }
 
   @override
   Widget build(BuildContext context) {
-    String parentId = FirebaseAuth.instance.currentUser!.uid;
+    List<Widget> pages = [
+      _buildHomePage(),
+      _buildMyStudentsPage(),
+      _buildProfilePage(),
+    ];
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
         title: const Text('Parent Portal'),
         backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
+        foregroundColor: Colors.white,
+        actions: [IconButton(icon: const Icon(Icons.logout), onPressed: _confirmLogout)],
+      ),
+      body: pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        selectedItemColor: Colors.blue,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'My Students'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+
+  // 1. Home Page
+  Widget _buildHomePage() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Welcome back, Parent!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const Icon(Icons.info_outline, size: 40, color: Colors.blue),
+                  const SizedBox(height: 10),
+                  const Text('Enroll a new student using the code provided by your teacher.', textAlign: TextAlign.center),
+                  const SizedBox(height: 15),
+                  ElevatedButton(
+                    onPressed: () => setState(() => _currentIndex = 1),
+                    child: const Text('Go to Enrollment'),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 2. My Students Page (Enrollment + History)
+  Widget _buildMyStudentsPage() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(child: _buildEnrollDialogTrigger()),
+            ],
+          ),
+        ),
+        const Divider(),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('enrollments').where('parentId', isEqualTo: parentId).snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              var enrollments = snapshot.data!.docs;
+              if (enrollments.isEmpty) return const Center(child: Text('No students enrolled yet.'));
+
+              return ListView.builder(
+                itemCount: enrollments.length,
+                itemBuilder: (context, index) {
+                  var data = enrollments[index].data() as Map<String, dynamic>;
+                  return Card(
+                    child: ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.face)),
+                      title: Text(data['studentName']),
+                      subtitle: Text('Class Code: ${data['classCode']}'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        // Open Attendance History Modal
+                        _showAttendanceHistory(data['studentName']);
+                      },
+                    ),
+                  );
+                },
+              );
             },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEnrollDialogTrigger() {
+    return ElevatedButton.icon(
+      onPressed: () => _showEnrollDialog(),
+      icon: const Icon(Icons.add),
+      label: const Text('Enroll New Student'),
+    );
+  }
+
+  void _showEnrollDialog() {
+    final codeController = TextEditingController();
+    final nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enroll Student'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Student Name')),
+            TextField(controller: codeController, decoration: const InputDecoration(labelText: 'Class Code')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              String code = codeController.text.trim();
+              if (code.isEmpty || nameController.text.isEmpty) return;
+
+              var classDoc = await FirebaseFirestore.instance.collection('classes').doc(code).get();
+              if (classDoc.exists) {
+                await FirebaseFirestore.instance.collection('enrollments').add({
+                  'classCode': code,
+                  'studentName': nameController.text.trim(),
+                  'parentId': parentId,
+                  'enrolledAt': FieldValue.serverTimestamp(),
+                });
+                if (context.mounted) Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid Code')));
+              }
+            },
+            child: const Text('Enroll'),
           )
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Enroll a Student', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Student Name', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _codeController,
-              decoration: const InputDecoration(labelText: 'Class Code (from Teacher)', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(onPressed: _enrollStudent, child: const Text('Enroll')),
-            const Divider(height: 40),
-            const Text('My Enrolled Students', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('enrollments').where('parentId', isEqualTo: parentId).snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                var enrollments = snapshot.data!.docs;
-                if (enrollments.isEmpty) return const Text('No students enrolled yet.');
+    );
+  }
 
-                return Column(
-                  children: enrollments.map((doc) {
-                    return Card(
-                      child: ListTile(
-                        leading: const Icon(Icons.face),
-                        title: Text(doc['studentName']),
-                        subtitle: Text('Class: ${doc['classCode']}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () async {
-                            await FirebaseFirestore.instance.collection('enrollments').doc(doc.id).delete();
-                          },
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
-        ),
+  // 3. Attendance History Modal (The new feature)
+  void _showAttendanceHistory(String studentName) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Attendance History: $studentName', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              const Text('Showing all past records from the teacher.'),
+              const Divider(),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('attendance_records').snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                    
+                    List<Widget> historyTiles = [];
+                    for (var doc in snapshot.data!.docs) {
+                      var data = doc.data() as Map<String, dynamic>;
+                      List students = data['students'];
+                      
+                      // Check if this student is in this record
+                      var studentRecord = students.firstWhere((s) => s['name'] == studentName, orElse: () => null);
+                      
+                      if (studentRecord != null) {
+                        bool isPresent = studentRecord['isPresent'];
+                        historyTiles.add(
+                          ListTile(
+                            leading: Icon(isPresent ? Icons.check_circle : Icons.cancel, color: isPresent ? Colors.green : Colors.red),
+                            title: Text(isPresent ? 'Present' : 'Absent'),
+                            subtitle: Text(data['date'] ?? 'Unknown Date'),
+                          ),
+                        );
+                      }
+                    }
+                    
+                    if (historyTiles.isEmpty) return const Center(child: Text('No attendance records found yet.'));
+                    return ListView(children: historyTiles);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 4. Profile Page
+  Widget _buildProfilePage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
+          const SizedBox(height: 20),
+          const Text('Parent Account', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _confirmLogout,
+            icon: const Icon(Icons.logout),
+            label: const Text('Logout'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          )
+        ],
       ),
     );
   }

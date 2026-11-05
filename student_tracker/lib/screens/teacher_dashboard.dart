@@ -22,7 +22,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     String teacherId = FirebaseAuth.instance.currentUser!.uid;
 
     await FirebaseFirestore.instance.collection('classes').doc(code).set({
-      'className': 'Grade 5 - Section A', // For now, hardcode the name
+      'className': 'Grade 5 - Section A', 
       'teacherId': teacherId,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -36,12 +36,44 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   // Function to unenroll a student
   Future<void> _unenrollStudent(String enrollmentId) async {
     await FirebaseFirestore.instance.collection('enrollments').doc(enrollmentId).delete();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student Removed')));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student Removed')));
+    }
+  }
+
+  // Logout Confirmation Prompt
+  Future<void> _confirmLogout() async {
+    bool? result = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), 
+            child: const Text('Cancel')
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true), 
+            child: const Text('Logout', style: TextStyle(color: Colors.red))
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true && mounted) {
+      Navigator.pushAndRemoveUntil(
+        context, 
+        MaterialPageRoute(builder: (context) => const LoginScreen()), 
+        (route) => false
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
         title: const Text('Teacher Dashboard'),
         backgroundColor: Colors.blue,
@@ -53,9 +85,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => const LoginScreen()), (route) => false);
-            },
+            onPressed: _confirmLogout, // CALLS THE CONFIRMATION FUNCTION NOW
           )
         ],
       ),
