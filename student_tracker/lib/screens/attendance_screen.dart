@@ -43,7 +43,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       String parentToken = parentQuery.docs.first.get('fcmToken');
       
       await http.post(
-        Uri.parse('http://192.168.1.X:3000/notify-absence'), // Update IP if needed
+        Uri.parse('https://studentattendancetracker-khxi.onrender.com/notify-absence'), // Update IP if needed
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'studentName': studentName, 'parentToken': parentToken}),
       );
