@@ -35,6 +35,33 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _isLoading = false);
   }
 
+  // NEW: Unenroll Student Function inside the classroom
+  Future<void> _unenrollStudent(String enrollmentId, String studentName) async {
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Student'),
+        content: Text('Are you sure you want to remove $studentName from this class?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true), 
+            child: const Text('Remove', style: TextStyle(color: Colors.white))
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseFirestore.instance.collection('enrollments').doc(enrollmentId).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$studentName removed successfully.')));
+        _fetchStudents(); // Refresh the list instantly
+      }
+    }
+  }
+
   Future<void> _sendNotification(String studentName) async {
     try {
       QuerySnapshot parentQuery = await FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'parent').limit(1).get();
@@ -64,7 +91,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ? const Center(child: CircularProgressIndicator())
         : Column(
             children: [
-              // Join Code is now ALWAYS visible
+              // Join Code is ALWAYS visible
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -91,6 +118,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             padding: const EdgeInsets.all(12.0),
                             child: Row(
                               children: [
+                                // Student Info
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,25 +129,36 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                     ],
                                   ),
                                 ),
+                                
+                                // Present/Absent Buttons
                                 Row(
                                   children: [
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: isPresent ? Colors.green : Colors.grey[300],
                                         foregroundColor: isPresent ? Colors.white : Colors.black,
+                                        minimumSize: const Size(60, 35),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
                                       ),
                                       onPressed: () => setState(() => students[index]['isPresent'] = true),
-                                      child: const Text('Present'),
+                                      child: const Text('Present', style: TextStyle(fontSize: 12)),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 5),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: !isPresent ? Colors.red : Colors.grey[300],
                                         foregroundColor: !isPresent ? Colors.white : Colors.black,
+                                        minimumSize: const Size(60, 35),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8),
                                       ),
                                       onPressed: () => setState(() => students[index]['isPresent'] = false),
-                                      child: const Text('Absent'),
+                                      child: const Text('Absent', style: TextStyle(fontSize: 12)),
                                     ),
+                                    // NEW: Remove Button
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () => _unenrollStudent(students[index]['id'], students[index]['name']),
+                                    )
                                   ],
                                 )
                               ],
@@ -130,7 +169,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     ),
               ),
               
-              // Only show the submit button if there are students
               if (students.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
