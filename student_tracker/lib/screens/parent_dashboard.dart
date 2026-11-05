@@ -121,9 +121,18 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       leading: const CircleAvatar(child: Icon(Icons.face)),
                       title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text('Class Code: ${data['classCode']}'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      // NEW: Edit Button Added Here
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () => _showEditStudentDialog(enrollments[index].id, data['studentName']),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 16),
+                        ],
+                      ),
                       onTap: () {
-                        // Navigate to the detailed page instead of a modal
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) => ParentStudentDetail(
                             studentName: data['studentName'],
@@ -186,6 +195,31 @@ class _ParentDashboardState extends State<ParentDashboard> {
               }
             },
             child: const Text('Enroll'),
+          )
+        ],
+      ),
+    );
+  }
+
+  // NEW: Edit Student Name Dialog
+  void _showEditStudentDialog(String enrollmentId, String currentName) {
+    final nameController = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Student Name'),
+        content: TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Student Name')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) return;
+              await FirebaseFirestore.instance.collection('enrollments').doc(enrollmentId).update({
+                'studentName': nameController.text.trim(),
+              });
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Save'),
           )
         ],
       ),

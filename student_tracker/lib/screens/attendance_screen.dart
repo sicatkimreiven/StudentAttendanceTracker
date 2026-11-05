@@ -35,7 +35,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _isLoading = false);
   }
 
-  // Optional: Notification trigger
   Future<void> _sendNotification(String studentName) async {
     try {
       QuerySnapshot parentQuery = await FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'parent').limit(1).get();
@@ -43,7 +42,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       String parentToken = parentQuery.docs.first.get('fcmToken');
       
       await http.post(
-        Uri.parse('https://studentattendancetracker-khxi.onrender.com/notify-absence'), // Update IP if needed
+        Uri.parse('https://studentattendancetracker-khxi.onrender.com/notify-absence'), 
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'studentName': studentName, 'parentToken': parentToken}),
       );
@@ -63,74 +62,76 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
-        : students.isEmpty 
-          ? const Center(child: Text('No students enrolled in this class yet.'))
-          : Column(
-              children: [
-                // Show Join Code here
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.blue[50],
-                  child: Column(
-                    children: [
-                      const Text('Share this Join Code with Parents:', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 5),
-                      SelectableText(widget.classCode, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                    ],
-                  ),
+        : Column(
+            children: [
+              // Join Code is now ALWAYS visible
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Colors.blue[50],
+                child: Column(
+                  children: [
+                    const Text('Share this Join Code with Parents:', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    SelectableText(widget.classCode, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                  ],
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: students.length,
-                    itemBuilder: (context, index) {
-                      bool isPresent = students[index]['isPresent'];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Row(
-                            children: [
-                              // Student Info
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(students[index]['name'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                    Text(isPresent ? 'Present' : 'Absent', 
-                                      style: TextStyle(color: isPresent ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
-                                  ],
+              ),
+              
+              Expanded(
+                child: students.isEmpty 
+                  ? const Center(child: Text('No students enrolled yet. Share the code above!'))
+                  : ListView.builder(
+                      itemCount: students.length,
+                      itemBuilder: (context, index) {
+                        bool isPresent = students[index]['isPresent'];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(students[index]['name'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                      Text(isPresent ? 'Present' : 'Absent', 
+                                        style: TextStyle(color: isPresent ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              // Clear Present/Absent Buttons
-                              Row(
-                                children: [
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: isPresent ? Colors.green : Colors.grey[300],
-                                      foregroundColor: isPresent ? Colors.white : Colors.black,
+                                Row(
+                                  children: [
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isPresent ? Colors.green : Colors.grey[300],
+                                        foregroundColor: isPresent ? Colors.white : Colors.black,
+                                      ),
+                                      onPressed: () => setState(() => students[index]['isPresent'] = true),
+                                      child: const Text('Present'),
                                     ),
-                                    onPressed: () => setState(() => students[index]['isPresent'] = true),
-                                    child: const Text('Present'),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: !isPresent ? Colors.red : Colors.grey[300],
-                                      foregroundColor: !isPresent ? Colors.white : Colors.black,
+                                    const SizedBox(width: 8),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: !isPresent ? Colors.red : Colors.grey[300],
+                                        foregroundColor: !isPresent ? Colors.white : Colors.black,
+                                      ),
+                                      onPressed: () => setState(() => students[index]['isPresent'] = false),
+                                      child: const Text('Absent'),
                                     ),
-                                    onPressed: () => setState(() => students[index]['isPresent'] = false),
-                                    child: const Text('Absent'),
-                                  ),
-                                ],
-                              )
-                            ],
+                                  ],
+                                )
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                        );
+                      },
+                    ),
+              ),
+              
+              // Only show the submit button if there are students
+              if (students.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: SizedBox(
@@ -142,7 +143,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator()));
                         await _dbService.saveAttendance(students);
                         
-                        // Trigger notification for absentees
                         for (var student in students) {
                           if (student['isPresent'] == false) {
                             await _sendNotification(student['name']);
@@ -159,8 +159,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     ),
                   ),
                 )
-              ],
-            ),
+            ],
+          ),
     );
   }
 }

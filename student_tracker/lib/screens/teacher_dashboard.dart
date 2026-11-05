@@ -17,8 +17,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   int _currentIndex = 0;
   String _searchQuery = '';
   bool _sortAscending = true;
-  
-  // Get the current logged-in teacher's ID
   final String teacherId = FirebaseAuth.instance.currentUser!.uid; 
 
   Future<void> _confirmLogout() async {
@@ -68,7 +66,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  // PAGE 1: Home (List of Classes for this teacher only)
+  // PAGE 1: Home
   Widget _buildHomePage() {
     return Column(
       children: [
@@ -83,7 +81,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            // FIX: Added .where('teacherId', isEqualTo: teacherId)
             stream: FirebaseFirestore.instance
                 .collection('classes')
                 .where('teacherId', isEqualTo: teacherId)
@@ -103,7 +100,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       leading: const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.class_, color: Colors.white)),
                       title: Text(data['className'], style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: const Text('Tap to view classroom'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      // NEW: Edit Button for Section Name
+                      trailing: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _showEditClassDialog(classes[index].id, data['className']),
+                      ),
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(
                           builder: (context) => AttendanceScreen(classCode: classes[index].id, className: data['className'])
@@ -147,7 +148,32 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  // PAGE 2: All Students (Filtered to only this teacher's classes)
+  // NEW: Edit Class Name Dialog
+  void _showEditClassDialog(String classCode, String currentName) {
+    final nameController = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Section Name'),
+        content: TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Section Name')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) return;
+              await FirebaseFirestore.instance.collection('classes').doc(classCode).update({
+                'className': nameController.text.trim(),
+              });
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          )
+        ],
+      ),
+    );
+  }
+
+  // PAGE 2: All Students
   Widget _buildStudentsPage() {
     return Column(
       children: [
@@ -171,16 +197,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         Expanded(
           child: FutureBuilder<List<String>>(
-            // FIX: First get the class codes belonging to THIS teacher
             future: FirebaseFirestore.instance.collection('classes').where('teacherId', isEqualTo: teacherId).get().then((snapshot) => snapshot.docs.map((doc) => doc.id).toList()),
             builder: (context, classSnapshot) {
               if (!classSnapshot.hasData) return const Center(child: CircularProgressIndicator());
               List<String> myClassCodes = classSnapshot.data!;
-
               if (myClassCodes.isEmpty) return const Center(child: Text('Create a section first to see students.'));
 
               return StreamBuilder<QuerySnapshot>(
-                // FIX: Now only fetch enrollments where classCode is in this teacher's classes
                 stream: FirebaseFirestore.instance
                     .collection('enrollments')
                     .where('classCode', whereIn: myClassCodes)
@@ -215,7 +238,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                               leading: const CircleAvatar(child: Icon(Icons.face)),
                               title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text('Section: $sectionName'), 
-                              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                              // NEW: Edit Button for Student Name
+                              trailing: IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _showEditStudentDialog(filtered[index].id, data['studentName']),
+                              ),
                               onTap: () {
                                 Navigator.push(context, MaterialPageRoute(
                                   builder: (context) => TeacherStudentDetail(
@@ -237,6 +264,31 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           ),
         )
       ],
+    );
+  }
+
+  // NEW: Edit Student Name Dialog
+  void _showEditStudentDialog(String enrollmentId, String currentName) {
+    final nameController = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Student Name'),
+        content: TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Student Name')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) return;
+              await FirebaseFirestore.instance.collection('enrollments').doc(enrollmentId).update({
+                'studentName': nameController.text.trim(),
+              });
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          )
+        ],
+      ),
     );
   }
 
