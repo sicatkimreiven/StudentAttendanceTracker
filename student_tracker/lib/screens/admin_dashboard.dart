@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+import 'settings_screen.dart';
+import '../services/database_service.dart';
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  final DatabaseService _dbService = DatabaseService();
+  Map<String, int> _summary = {'total': 0, 'present': 0, 'absent': 0};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSummary();
+  }
+
+  Future<void> _fetchSummary() async {
+    final data = await _dbService.getTodayAttendanceSummary();
+    if (mounted) {
+      setState(() {
+        _summary = data;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,57 +38,65 @@ class AdminDashboard extends StatelessWidget {
         title: const Text('Admin Reports'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        actions: [
+          // Settings Button
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          )
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Today\'s Summary',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            
-            // Summary Cards Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryCard('Total Students', '40', Colors.blue),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildSummaryCard('Present', '35', Colors.green),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildSummaryCard('Absent', '5', Colors.red),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 30),
-            const Text(
-              'Recent Reports',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            
-            // Mock list of reports
-            Expanded(
-              child: ListView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildReportTile('Grade 5 - Section A', '35/40 Present', Colors.green),
-                  _buildReportTile('Grade 6 - Section B', '38/42 Present', Colors.green),
-                  _buildReportTile('Grade 4 - Section C', '30/35 Present', Colors.orange),
+                  const Text(
+                    'Today\'s Summary',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSummaryCard('Total Students', '${_summary['total']}', Colors.blue),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSummaryCard('Present', '${_summary['present']}', Colors.green),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSummaryCard('Absent', '${_summary['absent']}', Colors.red),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    'Recent Reports',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: ListView(
+                      children: [
+                        _buildReportTile('Grade 5 - Section A', 'Live Synced', Colors.green),
+                        _buildReportTile('Grade 6 - Section B', 'Live Synced', Colors.green),
+                        _buildReportTile('Grade 4 - Section C', 'Live Synced', Colors.orange),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-      // Logout Button is now correctly at the end of the Scaffold
-            floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -73,7 +108,6 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  // Helper widget for the top summary cards
   Widget _buildSummaryCard(String title, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -92,7 +126,6 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  // Helper widget for the list items
   Widget _buildReportTile(String title, String subtitle, Color iconColor) {
     return Card(
       child: ListTile(
@@ -100,9 +133,6 @@ class AdminDashboard extends StatelessWidget {
         title: Text(title),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {
-          // We will make this navigate to a detailed view later
-        },
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'attendance_screen.dart';
-import 'login_screen.dart'; // 1. Added the import for LoginScreen
+import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class TeacherDashboard extends StatelessWidget {
   const TeacherDashboard({super.key});
@@ -12,7 +13,18 @@ class TeacherDashboard extends StatelessWidget {
         title: const Text('Teacher Dashboard'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-                actions: [
+        actions: [
+          // Profile Button
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+          // Logout Button (Only one, correctly placed)
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
