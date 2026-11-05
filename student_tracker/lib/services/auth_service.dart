@@ -17,7 +17,8 @@ class AuthService {
     }
   }
 
-  Future<User?> signUp(String email, String password, String role) async {
+  // UPDATED: Now accepts 'name' and saves it
+  Future<User?> signUp(String name, String email, String password, String role) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -26,6 +27,7 @@ class AuthService {
       
       if (result.user != null) {
         await FirebaseFirestore.instance.collection('users').doc(result.user!.uid).set({
+          'name': name,
           'email': email,
           'role': role, 
         });
@@ -37,7 +39,6 @@ class AuthService {
     }
   }
 
-  // NEW: Forgot Password function
   Future<bool> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);

@@ -10,12 +10,13 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
   String _selectedRole = 'teacher';
-  bool _obscurePassword = true; // NEW: State for Show Password
+  bool _obscurePassword = true; 
 
   @override
   Widget build(BuildContext context) {
@@ -36,12 +37,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 20),
               const Text('Join the School', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 30),
+              // NEW: Full Name Field
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Full Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.badge)),
+              ),
+              const SizedBox(height: 15),
               TextField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'School Email', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
               ),
               const SizedBox(height: 15),
-              // NEW: Updated Password Field with Eye Icon
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
@@ -79,8 +85,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () async {
+                    if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields.')));
+                      return;
+                    }
+
                     setState(() => _isLoading = true);
                     final user = await _authService.signUp(
+                      _nameController.text.trim(),
                       _emailController.text.trim(),
                       _passwordController.text.trim(),
                       _selectedRole,

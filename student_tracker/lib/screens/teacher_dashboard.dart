@@ -36,7 +36,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     }
   }
 
-  // NEW: Unenroll Student Function
   Future<void> _unenrollStudent(String enrollmentId, String studentName) async {
     bool? confirm = await showDialog(
       context: context,
@@ -262,7 +261,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                               leading: const CircleAvatar(child: Icon(Icons.face)),
                               title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text('Section: $sectionName'), 
-                              // NEW: Added the Remove (Trash) button next to Edit
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -324,24 +322,36 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  // PAGE 3: Profile
+  // PAGE 3: Profile (UPDATED to fetch real name)
   Widget _buildProfilePage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
-          const SizedBox(height: 20),
-          const Text('Teacher Account', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: _confirmLogout,
-            icon: const Icon(Icons.logout),
-            label: const Text('Logout'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          )
-        ],
-      ),
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('users').doc(teacherId).get(),
+      builder: (context, snapshot) {
+        String teacherName = 'Loading...';
+        if (snapshot.hasData && snapshot.data!.exists) {
+          teacherName = (snapshot.data!.data() as Map<String, dynamic>)['name'] ?? 'Unknown Teacher';
+        }
+
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
+              const SizedBox(height: 20),
+              Text(teacherName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 5),
+              const Text('Teacher Account', style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 30),
+              ElevatedButton.icon(
+                onPressed: _confirmLogout,
+                icon: const Icon(Icons.logout),
+                label: const Text('Logout'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              )
+            ],
+          ),
+        );
+      }
     );
   }
 }

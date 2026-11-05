@@ -62,7 +62,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // PAGE 1: Home (Shows a preview of students)
+  // PAGE 1: Home
   Widget _buildHomePage() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('enrollments').where('parentId', isEqualTo: parentId).snapshots(),
@@ -134,7 +134,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // PAGE 2: My Students (Cleaner look with Section and Teacher name)
+  // PAGE 2: My Students
   Widget _buildMyStudentsPage() {
     return Column(
       children: [
@@ -162,57 +162,65 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   var data = enrollments[index].data() as Map<String, dynamic>;
                   String classCode = data['classCode'];
 
-                  // Fetch Class details (Section Name and Teacher)
+                  // Fetch Class details
                   return FutureBuilder<DocumentSnapshot>(
                     future: FirebaseFirestore.instance.collection('classes').doc(classCode).get(),
                     builder: (context, classSnapshot) {
                       String sectionName = 'Loading...';
-                      String teacherName = 'Loading...';
+                      String teacherId = '';
 
                       if (classSnapshot.hasData && classSnapshot.data!.exists) {
                         var classData = classSnapshot.data!.data() as Map<String, dynamic>;
                         sectionName = classData['className'];
-                        String teacherId = classData['teacherId'];
-
-                        // We will just display the Teacher ID for now, since we don't have a Users lookup here
-                        teacherName = "ID: ${teacherId.substring(0, 5)}..."; 
+                        teacherId = classData['teacherId'];
                       }
 
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: data['gender'] == 'Female' ? Colors.pink[100] : Colors.blue[100],
-                            child: Icon(data['gender'] == 'Female' ? Icons.female : Icons.male, 
-                              color: data['gender'] == 'Female' ? Colors.pink : Colors.blue),
-                          ),
-                          title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Section: $sectionName'),
-                              Text('Teacher: $teacherName', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _showEditStudentDialog(enrollments[index].id, data['studentName']),
+                      // Fetch Teacher Name
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance.collection('users').doc(teacherId).get(),
+                        builder: (context, teacherSnapshot) {
+                          String teacherName = 'Unknown Teacher';
+                          if (teacherSnapshot.hasData && teacherSnapshot.data!.exists) {
+                            teacherName = (teacherSnapshot.data!.data() as Map<String, dynamic>)['name'] ?? 'Unknown Teacher';
+                          }
+
+                          return Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: data['gender'] == 'Female' ? Colors.pink[100] : Colors.blue[100],
+                                child: Icon(data['gender'] == 'Female' ? Icons.female : Icons.male, 
+                                  color: data['gender'] == 'Female' ? Colors.pink : Colors.blue),
                               ),
-                              const Icon(Icons.arrow_forward_ios, size: 16),
-                            ],
-                          ),
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(
-                              builder: (context) => ParentStudentDetail(
-                                studentName: data['studentName'],
-                                classCode: classCode,
-                              )
-                            ));
-                          },
-                        ),
+                              title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Section: $sectionName'),
+                                  Text('Teacher: $teacherName', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.blue),
+                                    onPressed: () => _showEditStudentDialog(enrollments[index].id, data['studentName']),
+                                  ),
+                                  const Icon(Icons.arrow_forward_ios, size: 16),
+                                ],
+                              ),
+                              onTap: () {
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) => ParentStudentDetail(
+                                    studentName: data['studentName'],
+                                    classCode: classCode,
+                                  )
+                                ));
+                              },
+                            ),
+                          );
+                        }
                       );
                     }
                   );
@@ -225,11 +233,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  // Updated Enroll Dialog with Gender
+  // Enroll Dialog with Gender
   void _showEnrollDialog() {
     final codeController = TextEditingController();
     final nameController = TextEditingController();
-    String selectedGender = 'Male'; // Default
+    String selectedGender = 'Male';
 
     showDialog(
       context: context,
