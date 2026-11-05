@@ -36,6 +36,32 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     }
   }
 
+  // NEW: Unenroll Student Function
+  Future<void> _unenrollStudent(String enrollmentId, String studentName) async {
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Student'),
+        content: Text('Are you sure you want to remove $studentName from this section?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true), 
+            child: const Text('Remove', style: TextStyle(color: Colors.white))
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseFirestore.instance.collection('enrollments').doc(enrollmentId).delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$studentName removed successfully.')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     List<Widget> pages = [
@@ -100,7 +126,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       leading: const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.class_, color: Colors.white)),
                       title: Text(data['className'], style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: const Text('Tap to view classroom'),
-                      // NEW: Edit Button for Section Name
                       trailing: IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
                         onPressed: () => _showEditClassDialog(classes[index].id, data['className']),
@@ -148,7 +173,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  // NEW: Edit Class Name Dialog
   void _showEditClassDialog(String classCode, String currentName) {
     final nameController = TextEditingController(text: currentName);
     showDialog(
@@ -238,10 +262,19 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                               leading: const CircleAvatar(child: Icon(Icons.face)),
                               title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text('Section: $sectionName'), 
-                              // NEW: Edit Button for Student Name
-                              trailing: IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _showEditStudentDialog(filtered[index].id, data['studentName']),
+                              // NEW: Added the Remove (Trash) button next to Edit
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.blue),
+                                    onPressed: () => _showEditStudentDialog(filtered[index].id, data['studentName']),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _unenrollStudent(filtered[index].id, data['studentName']),
+                                  ),
+                                ],
                               ),
                               onTap: () {
                                 Navigator.push(context, MaterialPageRoute(
@@ -267,7 +300,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  // NEW: Edit Student Name Dialog
   void _showEditStudentDialog(String enrollmentId, String currentName) {
     final nameController = TextEditingController(text: currentName);
     showDialog(
