@@ -1,1 +1,16 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"student-attendance-track-d259c","appId":"1:31484212379:android:7b02fdf91f0fb038c0423e","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"student-attendance-track-d259c","configurations":{"android":"1:31484212379:android:7b02fdf91f0fb038c0423e","ios":"1:31484212379:ios:d26eda127681de5dc0423e","macos":"1:31484212379:ios:d26eda127681de5dc0423e","web":"1:31484212379:web:37f3f17640dc8499c0423e","windows":"1:31484212379:web:406501d2aef1737dc0423e"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

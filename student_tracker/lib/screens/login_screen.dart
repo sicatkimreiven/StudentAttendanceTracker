@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'teacher_dashboard.dart';
 import 'admin_dashboard.dart';
+import 'register_screen.dart'; // Imported correctly
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -108,6 +109,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('Login', style: TextStyle(fontSize: 18)),
                 ),
+              ),
+              // THIS IS THE NEW PART TO ACCESS THE REGISTER SCREEN
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                  );
+                },
+                child: const Text('Don\'t have an account? Register here'),
               ),
             ],
           ),

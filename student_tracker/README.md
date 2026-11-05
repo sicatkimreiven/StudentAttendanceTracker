@@ -17,3 +17,6 @@ A cross-platform mobile application built with Flutter, Node.js, and Firebase to
 1. Clone this repository.
 2. **Frontend:** Run `flutter pub get`, then `flutter run -d chrome`.
 3. **Backend:** Navigate to `backend/`, run `npm install`, add your `serviceAccountKey.json`, then run `node server.js`.
+
+## Live Demo
+You can access the live web version of the app here: [https://student-attendance-track-d259c.web.app](https://student-attendance-track-d259c.web.app)
