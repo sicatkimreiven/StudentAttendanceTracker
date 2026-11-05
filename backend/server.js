@@ -4,7 +4,11 @@ const { getFirestore } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
 const cors = require('cors');
 
-const serviceAccount = require('./serviceAccountKey.json');
+// FIX: Read the secret key from the Environment Variable (for Render)
+// We use process.env for production, but fallback to the file for local testing
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) 
+  : require('./serviceAccountKey.json');
 
 initializeApp({ credential: cert(serviceAccount) });
 const db = getFirestore();
@@ -39,6 +43,11 @@ app.post('/notify-absence', async (req, res) => {
   }
 });
 
+// Simple health check endpoint for Render
+app.get('/', (req, res) => {
+  res.send('Student Tracker Backend is running perfectly!');
+});
+
 // Keep the Firestore listener for your terminal logs
 db.collection('attendance_records').onSnapshot((snapshot) => {
   snapshot.docChanges().forEach((change) => {
@@ -57,5 +66,5 @@ db.collection('attendance_records').onSnapshot((snapshot) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`\n🚀 Backend server running on http://localhost:${PORT}`);
+  console.log(`\n🚀 Backend server running on port ${PORT}`);
 });

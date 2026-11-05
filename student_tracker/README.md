@@ -20,3 +20,8 @@ A cross-platform mobile application built with Flutter, Node.js, and Firebase to
 
 ## Live Demo
 You can access the live web version of the app here: [https://student-attendance-track-d259c.web.app](https://student-attendance-track-d259c.web.app)
+
+## Key Features
+- **Teacher Portal:** Create sections, get join codes, view all students, search/sort students, and view detailed attendance histories.
+- **Parent Portal:** Enroll students using class codes, view their child's assigned section, and track their full attendance history.
+- **Offline Mode:** Works seamlessly without internet by saving locally and syncing later.

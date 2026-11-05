@@ -4,8 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class TeacherStudentDetail extends StatelessWidget {
   final String studentName;
   final String classCode;
+  final String sectionName; // Added section name
 
-  const TeacherStudentDetail({super.key, required this.studentName, required this.classCode});
+  const TeacherStudentDetail({super.key, required this.studentName, required this.classCode, required this.sectionName});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +21,7 @@ class TeacherStudentDetail extends StatelessWidget {
               child: ListTile(
                 leading: const Icon(Icons.class_, color: Colors.blue),
                 title: const Text('Assigned Section'),
-                subtitle: Text('Class Code: $classCode'),
+                subtitle: Text(sectionName), // Shows the name instead of the code
               ),
             ),
             const SizedBox(height: 20),
