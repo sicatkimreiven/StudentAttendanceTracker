@@ -16,12 +16,22 @@ class ParentStudentDetail extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.class_, color: Colors.blue),
-                title: const Text('Assigned Section'),
-                subtitle: Text('Class Code: $classCode'),
-              ),
+            // Fetch Section Name dynamically
+            FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('classes').doc(classCode).get(),
+              builder: (context, snapshot) {
+                String sectionName = 'Loading...';
+                if (snapshot.hasData && snapshot.data!.exists) {
+                   sectionName = (snapshot.data!.data() as Map<String, dynamic>)['className'];
+                }
+                return Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.class_, color: Colors.blue),
+                    title: const Text('Assigned Section'),
+                    subtitle: Text(sectionName),
+                  ),
+                );
+              }
             ),
             const SizedBox(height: 20),
             const Text('Attendance History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),

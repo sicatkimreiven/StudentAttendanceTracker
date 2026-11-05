@@ -62,45 +62,89 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
+  // PAGE 1: Home (Shows a preview of students)
   Widget _buildHomePage() {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Welcome back, Parent!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  const Icon(Icons.info_outline, size: 40, color: Colors.blue),
-                  const SizedBox(height: 10),
-                  const Text('Enroll a new student using the code provided by your teacher.', textAlign: TextAlign.center),
-                  const SizedBox(height: 15),
-                  ElevatedButton(
-                    onPressed: () => setState(() => _currentIndex = 1),
-                    child: const Text('Go to Enrollment'),
-                  )
-                ],
-              ),
-            ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('enrollments').where('parentId', isEqualTo: parentId).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        var enrollments = snapshot.data!.docs;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Welcome back!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              
+              if (enrollments.isEmpty)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.info_outline, size: 40, color: Colors.blue),
+                        const SizedBox(height: 10),
+                        const Text('You have no students enrolled yet.', textAlign: TextAlign.center),
+                        const SizedBox(height: 15),
+                        ElevatedButton(
+                          onPressed: () => setState(() => _currentIndex = 1),
+                          child: const Text('Enroll a Student'),
+                        )
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('My Enrolled Students', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    ...enrollments.map((doc) {
+                      var data = doc.data() as Map<String, dynamic>;
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance.collection('classes').doc(data['classCode']).get(),
+                        builder: (context, classSnapshot) {
+                          String sectionName = 'Unknown Section';
+                          if (classSnapshot.hasData && classSnapshot.data!.exists) {
+                            sectionName = (classSnapshot.data!.data() as Map<String, dynamic>)['className'];
+                          }
+                          return Card(
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: data['gender'] == 'Female' ? Colors.pink[100] : Colors.blue[100],
+                                child: Icon(data['gender'] == 'Female' ? Icons.female : Icons.male, 
+                                  color: data['gender'] == 'Female' ? Colors.pink : Colors.blue),
+                              ),
+                              title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('Section: $sectionName'),
+                            ),
+                          );
+                        }
+                      );
+                    }).toList(),
+                  ],
+                )
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
+  // PAGE 2: My Students (Cleaner look with Section and Teacher name)
   Widget _buildMyStudentsPage() {
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Expanded(child: _buildEnrollDialogTrigger()),
-            ],
+          child: ElevatedButton.icon(
+            onPressed: () => _showEnrollDialog(),
+            icon: const Icon(Icons.add),
+            label: const Text('Enroll New Student'),
+            style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
           ),
         ),
         const Divider(),
@@ -116,31 +160,61 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 itemCount: enrollments.length,
                 itemBuilder: (context, index) {
                   var data = enrollments[index].data() as Map<String, dynamic>;
-                  return Card(
-                    child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.face)),
-                      title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('Class Code: ${data['classCode']}'),
-                      // NEW: Edit Button Added Here
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _showEditStudentDialog(enrollments[index].id, data['studentName']),
+                  String classCode = data['classCode'];
+
+                  // Fetch Class details (Section Name and Teacher)
+                  return FutureBuilder<DocumentSnapshot>(
+                    future: FirebaseFirestore.instance.collection('classes').doc(classCode).get(),
+                    builder: (context, classSnapshot) {
+                      String sectionName = 'Loading...';
+                      String teacherName = 'Loading...';
+
+                      if (classSnapshot.hasData && classSnapshot.data!.exists) {
+                        var classData = classSnapshot.data!.data() as Map<String, dynamic>;
+                        sectionName = classData['className'];
+                        String teacherId = classData['teacherId'];
+
+                        // We will just display the Teacher ID for now, since we don't have a Users lookup here
+                        teacherName = "ID: ${teacherId.substring(0, 5)}..."; 
+                      }
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: data['gender'] == 'Female' ? Colors.pink[100] : Colors.blue[100],
+                            child: Icon(data['gender'] == 'Female' ? Icons.female : Icons.male, 
+                              color: data['gender'] == 'Female' ? Colors.pink : Colors.blue),
                           ),
-                          const Icon(Icons.arrow_forward_ios, size: 16),
-                        ],
-                      ),
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (context) => ParentStudentDetail(
-                            studentName: data['studentName'],
-                            classCode: data['classCode'],
-                          )
-                        ));
-                      },
-                    ),
+                          title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Section: $sectionName'),
+                              Text('Teacher: $teacherName', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                            ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _showEditStudentDialog(enrollments[index].id, data['studentName']),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, size: 16),
+                            ],
+                          ),
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (context) => ParentStudentDetail(
+                                studentName: data['studentName'],
+                                classCode: classCode,
+                              )
+                            ));
+                          },
+                        ),
+                      );
+                    }
                   );
                 },
               );
@@ -151,57 +225,66 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  Widget _buildEnrollDialogTrigger() {
-    return ElevatedButton.icon(
-      onPressed: () => _showEnrollDialog(),
-      icon: const Icon(Icons.add),
-      label: const Text('Enroll New Student'),
-    );
-  }
-
+  // Updated Enroll Dialog with Gender
   void _showEnrollDialog() {
     final codeController = TextEditingController();
     final nameController = TextEditingController();
+    String selectedGender = 'Male'; // Default
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enroll Student'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Student Name')),
-            TextField(controller: codeController, decoration: const InputDecoration(labelText: 'Class Code')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              String code = codeController.text.trim();
-              if (code.isEmpty || nameController.text.isEmpty) return;
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Enroll Student'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Student Name')),
+                const SizedBox(height: 10),
+                TextField(controller: codeController, decoration: const InputDecoration(labelText: 'Class Code')),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: selectedGender,
+                  decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder()),
+                  items: const [
+                    DropdownMenuItem(value: 'Male', child: Text('Male')),
+                    DropdownMenuItem(value: 'Female', child: Text('Female')),
+                  ],
+                  onChanged: (val) => setState(() => selectedGender = val!),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              ElevatedButton(
+                onPressed: () async {
+                  String code = codeController.text.trim();
+                  if (code.isEmpty || nameController.text.isEmpty) return;
 
-              var classDoc = await FirebaseFirestore.instance.collection('classes').doc(code).get();
-              if (classDoc.exists) {
-                await FirebaseFirestore.instance.collection('enrollments').add({
-                  'classCode': code,
-                  'studentName': nameController.text.trim(),
-                  'parentId': parentId,
-                  'enrolledAt': FieldValue.serverTimestamp(),
-                });
-                if (context.mounted) Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid Code')));
-              }
-            },
-            child: const Text('Enroll'),
-          )
-        ],
+                  var classDoc = await FirebaseFirestore.instance.collection('classes').doc(code).get();
+                  if (classDoc.exists) {
+                    await FirebaseFirestore.instance.collection('enrollments').add({
+                      'classCode': code,
+                      'studentName': nameController.text.trim(),
+                      'gender': selectedGender,
+                      'parentId': parentId,
+                      'enrolledAt': FieldValue.serverTimestamp(),
+                    });
+                    if (context.mounted) Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid Code')));
+                  }
+                },
+                child: const Text('Enroll'),
+              )
+            ],
+          );
+        }
       ),
     );
   }
 
-  // NEW: Edit Student Name Dialog
   void _showEditStudentDialog(String enrollmentId, String currentName) {
     final nameController = TextEditingController(text: currentName);
     showDialog(
@@ -226,6 +309,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
+  // PAGE 3: Profile
   Widget _buildProfilePage() {
     return Center(
       child: Column(
