@@ -14,7 +14,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
-  String _selectedRole = 'teacher'; // Default role
+  String _selectedRole = 'teacher';
+  bool _obscurePassword = true; // NEW: State for Show Password
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +41,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 decoration: const InputDecoration(labelText: 'School Email', border: OutlineInputBorder(), prefixIcon: Icon(Icons.email)),
               ),
               const SizedBox(height: 15),
+              // NEW: Updated Password Field with Eye Icon
               TextField(
                 controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password (min 6 chars)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock)),
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password (min 6 chars)', 
+                  border: const OutlineInputBorder(), 
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
               ),
               const SizedBox(height: 15),
-              // Role Selection Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedRole,
                 decoration: const InputDecoration(labelText: 'I am a...', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person)),

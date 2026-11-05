@@ -38,6 +38,41 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // NEW: Show dialog to enter email for password reset
+  void _showForgotPasswordDialog() {
+    final resetEmailController = TextEditingController(text: _emailController.text);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Password'),
+        content: TextField(
+          controller: resetEmailController,
+          decoration: const InputDecoration(labelText: 'Enter your email'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              String email = resetEmailController.text.trim();
+              if (email.isEmpty) return;
+              
+              bool success = await _authService.resetPassword(email);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(success 
+                    ? 'Password reset link sent to $email' 
+                    : 'Failed to send reset link. Check the email.')),
+                );
+              }
+            },
+            child: const Text('Send Link'),
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,7 +113,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
+              // NEW: Forgot Password Button
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _showForgotPasswordDialog,
+                  child: const Text('Forgot Password?'),
+                ),
+              ),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 55,

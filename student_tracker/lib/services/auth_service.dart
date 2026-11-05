@@ -17,7 +17,6 @@ class AuthService {
     }
   }
 
-  // UPDATED: Sign up function now accepts a role
   Future<User?> signUp(String email, String password, String role) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -25,18 +24,27 @@ class AuthService {
         password: password,
       );
       
-      // Save the role to Firestore
       if (result.user != null) {
         await FirebaseFirestore.instance.collection('users').doc(result.user!.uid).set({
           'email': email,
-          'role': role, // 'teacher' or 'parent'
+          'role': role, 
         });
       }
-      
       return result.user;
     } on FirebaseAuthException catch (e) {
       print("Sign Up Error: ${e.message}");
       return null;
+    }
+  }
+
+  // NEW: Forgot Password function
+  Future<bool> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return true;
+    } catch (e) {
+      print("Error resetting password: $e");
+      return false;
     }
   }
 

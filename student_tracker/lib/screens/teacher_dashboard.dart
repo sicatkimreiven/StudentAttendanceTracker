@@ -17,6 +17,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   int _currentIndex = 0;
   String _searchQuery = '';
   bool _sortAscending = true;
+  
+  // Get the current logged-in teacher's ID
+  final String teacherId = FirebaseAuth.instance.currentUser!.uid; 
 
   Future<void> _confirmLogout() async {
     bool? result = await showDialog(
@@ -65,9 +68,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  // PAGE 1: Home (List of Classes)
+  // PAGE 1: Home (List of Classes for this teacher only)
   Widget _buildHomePage() {
-    String teacherId = FirebaseAuth.instance.currentUser!.uid;
     return Column(
       children: [
         Padding(
@@ -81,7 +83,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('classes').where('teacherId', isEqualTo: teacherId).snapshots(),
+            // FIX: Added .where('teacherId', isEqualTo: teacherId)
+            stream: FirebaseFirestore.instance
+                .collection('classes')
+                .where('teacherId', isEqualTo: teacherId)
+                .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
               var classes = snapshot.data!.docs;
@@ -96,7 +102,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     child: ListTile(
                       leading: const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.class_, color: Colors.white)),
                       title: Text(data['className'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Tap to view classroom'), // Removed code here
+                      subtitle: const Text('Tap to view classroom'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {
                         Navigator.push(context, MaterialPageRoute(
@@ -129,7 +135,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               String code = "CLS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}";
               await FirebaseFirestore.instance.collection('classes').doc(code).set({
                 'className': nameController.text.trim(),
-                'teacherId': FirebaseAuth.instance.currentUser!.uid,
+                'teacherId': teacherId,
                 'createdAt': FieldValue.serverTimestamp(),
               });
               if (context.mounted) Navigator.pop(context);
@@ -141,7 +147,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  // PAGE 2: All Students (Search + Sort + Click to detail)
+  // PAGE 2: All Students (Filtered to only this teacher's classes)
   Widget _buildStudentsPage() {
     return Column(
       children: [
@@ -164,52 +170,66 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           ),
         ),
         Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            // We need to join enrollments with classes to get the section name
-            stream: FirebaseFirestore.instance.collection('enrollments').snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-              var enrollments = snapshot.data!.docs;
-              
-              var filtered = enrollments.where((doc) => (doc['studentName'] as String).toLowerCase().contains(_searchQuery)).toList();
-              filtered.sort((a, b) => _sortAscending 
-                  ? (a['studentName'] as String).compareTo(b['studentName']) 
-                  : (b['studentName'] as String).compareTo(a['studentName']));
+          child: FutureBuilder<List<String>>(
+            // FIX: First get the class codes belonging to THIS teacher
+            future: FirebaseFirestore.instance.collection('classes').where('teacherId', isEqualTo: teacherId).get().then((snapshot) => snapshot.docs.map((doc) => doc.id).toList()),
+            builder: (context, classSnapshot) {
+              if (!classSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+              List<String> myClassCodes = classSnapshot.data!;
 
-              if (filtered.isEmpty) return const Center(child: Text('No students found.'));
+              if (myClassCodes.isEmpty) return const Center(child: Text('Create a section first to see students.'));
 
-              return ListView.builder(
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  var data = filtered[index].data() as Map<String, dynamic>;
-                  String classCode = data['classCode'];
+              return StreamBuilder<QuerySnapshot>(
+                // FIX: Now only fetch enrollments where classCode is in this teacher's classes
+                stream: FirebaseFirestore.instance
+                    .collection('enrollments')
+                    .where('classCode', whereIn: myClassCodes)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  var enrollments = snapshot.data!.docs;
                   
-                  return FutureBuilder<DocumentSnapshot>(
-                    future: FirebaseFirestore.instance.collection('classes').doc(classCode).get(),
-                    builder: (context, classSnapshot) {
-                      String sectionName = 'Loading...';
-                      if (classSnapshot.hasData && classSnapshot.data!.exists) {
-                        sectionName = (classSnapshot.data!.data() as Map<String, dynamic>)['className'];
-                      }
+                  var filtered = enrollments.where((doc) => (doc['studentName'] as String).toLowerCase().contains(_searchQuery)).toList();
+                  filtered.sort((a, b) => _sortAscending 
+                      ? (a['studentName'] as String).compareTo(b['studentName']) 
+                      : (b['studentName'] as String).compareTo(a['studentName']));
 
-                      return Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(child: Icon(Icons.face)),
-                          title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('Section: $sectionName'), // Displays Section instead of Code
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            Navigator.push(context, MaterialPageRoute(
-                              builder: (context) => TeacherStudentDetail(
-                                studentName: data['studentName'],
-                                classCode: classCode,
-                                sectionName: sectionName,
-                              )
-                            ));
-                          },
-                        ),
+                  if (filtered.isEmpty) return const Center(child: Text('No students found.'));
+
+                  return ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      var data = filtered[index].data() as Map<String, dynamic>;
+                      String classCode = data['classCode'];
+                      
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance.collection('classes').doc(classCode).get(),
+                        builder: (context, classSnapshot) {
+                          String sectionName = 'Loading...';
+                          if (classSnapshot.hasData && classSnapshot.data!.exists) {
+                            sectionName = (classSnapshot.data!.data() as Map<String, dynamic>)['className'];
+                          }
+
+                          return Card(
+                            child: ListTile(
+                              leading: const CircleAvatar(child: Icon(Icons.face)),
+                              title: Text(data['studentName'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('Section: $sectionName'), 
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                              onTap: () {
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (context) => TeacherStudentDetail(
+                                    studentName: data['studentName'],
+                                    classCode: classCode,
+                                    sectionName: sectionName,
+                                  )
+                                ));
+                              },
+                            ),
+                          );
+                        }
                       );
-                    }
+                    },
                   );
                 },
               );
